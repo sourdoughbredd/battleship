@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "jest",
-    "watch-test": "jest --watch .js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "watch": "webpack --watch",
     "build": "webpack",
     "deploy": "gh-pages -d dist"
+  },
+  "jest": {
+    "transform": {}
   },
   "keywords": [],
   "author": "",
@@ -17,6 +20,7 @@
     "css-loader": "^6.8.1",
     "gh-pages": "^6.1.1",
     "html-webpack-plugin": "^5.6.0",
+    "jest": "^29.7.0",
     "style-loader": "^3.3.3",
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4"
