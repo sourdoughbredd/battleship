@@ -28,3 +28,13 @@ test("ship hit function increments numHits and sinks ship", () => {
   expect(ship.numHits).toBe(length);
   expect(ship.isSunk()).toBe(true);
 });
+
+test("Ship numHits never exceeds length", () => {
+  for (let length = 1; length < 11; length++) {
+    const ship = createShip(length);
+    for (let hits = 0; hits < 2 * length; hits++) {
+      ship.hit();
+      expect(ship.numHits).toBeLessThanOrEqual(length);
+    }
+  }
+});
