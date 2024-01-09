@@ -7,7 +7,7 @@ function createShip(length) {
     length,
     numHits: 0,
     hit() {
-      this.numHits += 1;
+      this.numHits += this.isSunk() ? 0 : 1;
     },
     isSunk() {
       return this.numHits >= this.length;
