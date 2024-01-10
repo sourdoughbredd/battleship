@@ -1,4 +1,4 @@
-export { createShip };
+export { createShip, createGameboard };
 
 function createShip(length, name) {
   // Error checking
@@ -35,5 +35,23 @@ function createShip(length, name) {
     hit,
     isSunk,
     getName,
+  };
+}
+
+function createGameboard() {
+  const placeShip = function (name, length, row, col, orientation) {};
+  const receiveAttack = function (row, col) {};
+  const attackStatus = function (row, col) {};
+  const attackAllowed = function (row, col) {};
+  const hasShip = function (row, col) {};
+  const allShipsSunk = function () {};
+
+  return {
+    placeShip,
+    receiveAttack,
+    attackStatus,
+    attackAllowed,
+    hasShip,
+    allShipsSunk,
   };
 }
