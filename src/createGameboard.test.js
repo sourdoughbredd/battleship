@@ -114,10 +114,27 @@ describe("ship placement errors", () => {
 describe("Attacking board and tracking hits and misses", () => {
   test("Attacking same spot twice throws error", () => {
     const board = createGameboard();
-    board.receiveAttack(0, 0);
-    expect(() => board.receiveAttack(0, 0)).toThrow(
-      "Square at (0, 0) has already been attacked!"
-    );
+    board.placeShip("five", 5, 0, 0, "h");
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        board.receiveAttack(r, c);
+        expect(() => board.receiveAttack(r, c)).toThrow(
+          `Square at (${r}, ${c}) has already been attacked!`
+        );
+      }
+    }
+  });
+
+  test("attackAllowed() returns correctly for all squares", () => {
+    const board = createGameboard();
+    board.placeShip("five", 5, 0, 0, "h");
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        expect(board.attackAllowed(r, c)).toBe(true);
+        board.receiveAttack(r, c);
+        expect(board.attackAllowed(r, c)).toBe(false);
+      }
+    }
   });
 
   test("Missed attacks correctly convert attack status from null to false", () => {
@@ -130,8 +147,63 @@ describe("Attacking board and tracking hits and misses", () => {
       }
     }
   });
+
+  test("Hit attacks correctly convert attack status from null to true", () => {
+    const board = createGameboard();
+    board.placeShip("five", 5, 0, 0, "h");
+    for (let c = 0; c < 5; c++) {
+      expect(board.attackStatus(0, c)).toBeNull();
+      board.receiveAttack(0, c);
+      expect(board.attackStatus(0, c)).toBe(true);
+    }
+  });
 });
 
-// All ships sunk?
+// All
+describe("testing allShipsSunk()", () => {
+  test("no ships on board means all ships are sunk", () => {
+    const board = createGameboard();
+    expect(board.allShipsSunk()).toBe(true);
+    // Atack all squares just to make sure it doesn't change
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        board.receiveAttack(r, c);
+        expect(board.allShipsSunk()).toBe(true);
+      }
+    }
+  });
 
-//
+  test("placing a ship means allShipsSunk = false", () => {
+    const board = createGameboard();
+    board.placeShip("three", 3, 0, 0, "h");
+    expect(board.allShipsSunk()).toBe(false);
+  });
+
+  test("sinking the only ship means allShipsSunk = true", () => {
+    const board = createGameboard();
+    board.placeShip("three", 3, 0, 0, "h");
+    board.receiveAttack(0, 0);
+    expect(board.allShipsSunk()).toBe(false);
+    board.receiveAttack(0, 1);
+    expect(board.allShipsSunk()).toBe(false);
+    board.receiveAttack(0, 2);
+    expect(board.allShipsSunk()).toBe(true);
+  });
+
+  test("sinking the all (of multiple) ships means allShipsSunk = true", () => {
+    const board = createGameboard();
+    board.placeShip("three", 3, 0, 0, "h");
+    board.placeShip("three", 3, 3, 0, "h");
+    board.placeShip("three", 3, 6, 0, "h");
+
+    for (let c = 0; c < 3; c++) {
+      expect(board.allShipsSunk()).toBe(false);
+      board.receiveAttack(0, c);
+      expect(board.allShipsSunk()).toBe(false);
+      board.receiveAttack(3, c);
+      expect(board.allShipsSunk()).toBe(false);
+      board.receiveAttack(6, c);
+    }
+    expect(board.allShipsSunk()).toBe(true);
+  });
+});
