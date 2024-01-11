@@ -109,7 +109,9 @@ function createGameboard() {
     return _ships[row][col] ? true : false;
   };
 
-  const allShipsSunk = function () {};
+  const allShipsSunk = function () {
+    return _numShipsLeft === 0;
+  };
 
   const receiveAttack = function (row, col) {
     validateRowCol(row, col);
@@ -118,7 +120,12 @@ function createGameboard() {
     }
     const hitShip = hasShip(row, col);
     _attacks[row][col] = hitShip ? true : false;
-    if (hitShip) _ships[row][col].hit();
+    if (hitShip) {
+      _ships[row][col].hit();
+      if (_ships[row][col].isSunk()) {
+        _numShipsLeft -= 1;
+      }
+    }
   };
 
   const attackStatus = function (row, col) {
