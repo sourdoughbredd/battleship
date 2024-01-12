@@ -1,9 +1,9 @@
-export { createShip, createGameboard, createPlayer };
+export { createShip, createGameboard, createPlayer, createComputerPlayer };
 
 function getRandomInt(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 function getRandomOrientation() {
@@ -69,19 +69,23 @@ function createGameboard() {
 
   function validateShipPlacement(length, row, col, orientation) {
     // Check for violations of board boundaries
-    validateRowCol(row, col);
+    try {
+      validateRowCol(row, col);
+    } catch (e) {
+      throw new InvalidShipPlacementError(e.message);
+    }
     if (orientation !== "h" && orientation !== "v") {
-      throw new Error(
+      throw new InvalidShipPlacementError(
         `Orientation must be 'h' or 'v'! Value provided: ${orientation}`
       );
     }
     if (orientation === "h" && col + length > BOARD_SIZE) {
-      throw new Error(
+      throw new InvalidShipPlacementError(
         `Horizontally placing ship of length ${length} at row ${row}, col ${col} would violate board bounds!`
       );
     }
     if (orientation === "v" && row + length > BOARD_SIZE) {
-      throw new Error(
+      throw new InvalidShipPlacementError(
         `Vertically placing ship of length ${length} at row ${row}, col ${col} would violate board bounds!`
       );
     }
@@ -93,10 +97,17 @@ function createGameboard() {
           ? hasShip(row, col + delta)
           : hasShip(row + delta, col);
       if (intersecting) {
-        throw new Error(
+        throw new InvalidShipPlacementError(
           `Ship placement intersects a ship that is already on the board!`
         );
       }
+    }
+  }
+
+  class InvalidShipPlacementError extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "InvalidShipPlacementError";
     }
   }
 
@@ -132,9 +143,7 @@ function createGameboard() {
     _attacks[row][col] = hitShip ? true : false;
     if (hitShip) {
       _ships[row][col].hit();
-      if (_ships[row][col].isSunk()) {
-        _numShipsLeft -= 1;
-      }
+      _numShipsLeft -= _ships[row][col].isSunk();
     }
   };
 
@@ -147,65 +156,76 @@ function createGameboard() {
     return attackStatus(row, col) === null;
   };
 
+  const attackableSpots = function () {
+    const attackable = [];
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        if (attackAllowed(r, c)) {
+          attackable.push([r, c]);
+        }
+      }
+    }
+    return attackable;
+  };
+
   return {
+    size: BOARD_SIZE,
     placeShip,
     hasShip,
     allShipsSunk,
     receiveAttack,
     attackStatus,
     attackAllowed,
+    attackableSpots,
+    InvalidShipPlacementError,
   };
 }
 
-function createPlayer() {
-  function placeShip(board, name, length, row, col, orientation) {
+function createPlayer(board) {
+  function placeShip(name, length, row, col, orientation) {
     board.placeShip(name, length, row, col, orientation);
   }
 
-  function attack(player, row, col) {
-    player.board.receiveAttack(row, col);
+  function attack(opponent, row, col) {
+    opponent.board.receiveAttack(row, col);
   }
 
   return {
+    board,
     placeShip,
     attack,
   };
 }
 
-// function createComputerPlayer() {
-//   const computer = createPlayer();
+function createComputerPlayer(board) {
+  // Start with regulare player as template, then override methods
+  const computer = createPlayer(board);
 
-//   const ships = {
-//     Carrier: 5,
-//     Battleship: 4,
-//     Destroyer: 3,
-//     Submarine: 3,
-//     "Patrol Boat": 2,
-//   };
+  // Override methods
 
-//   function placeShips() {
-//     for (const [name, length] in ships) {
-//       randomShipPlacement(name, length);
-//     }
-//   }
+  // Repeatedly tries to place the ship at random until a success
+  computer.placeShip = function (name, length) {
+    try {
+      computer.board.placeShip(
+        name,
+        length,
+        getRandomInt(0, board.size),
+        getRandomInt(0, board.size),
+        getRandomOrientation()
+      );
+    } catch (e) {
+      if (!(e instanceof board.InvalidShipPlacementError)) throw e;
+      computer.placeShip(name, length);
+    }
+  };
 
-//   // Recursively tries to place the ship at random until a success
-//   function randomShipPlacement(name, length) {
-//     try {
-//       computer.placeShip(
-//         name,
-//         length,
-//         getRandomInt(0, BOARD_SIZE),
-//         getRandomInt(0, BOARD_SIZE),
-//         getRandomOrientation()
-//       );
-//     } catch {
-//       randomShipPlacement(name, length);
-//     }
-//   }
+  // Attack a random spot from the set of all allowable spots
+  computer.attack = function (opponent) {
+    const attackableSpots = opponent.board.attackableSpots();
+    const [rowToAttack, colToAttack] =
+      attackableSpots[getRandomInt(0, attackableSpots.length)];
+    opponent.board.receiveAttack(rowToAttack, colToAttack);
+  };
 
-//   return {
-//     ...computer,
-//     placeShips,
-//   };
-// }
+  return computer;
+}
