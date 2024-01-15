@@ -2,7 +2,7 @@ import {
   createGameboard,
   createPlayer,
   createComputerPlayer,
-} from "./GameObjects.js";
+} from "./gameObjects.js";
 
 describe("Human player interaction with their own board", () => {
   test("Creating a human player correctly assigns board to them", () => {

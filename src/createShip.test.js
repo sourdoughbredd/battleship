@@ -1,4 +1,4 @@
-import { createShip } from "./GameObjects.js";
+import { createShip } from "./gameObjects.js";
 
 test("creating ship length error detection", () => {
   expect(() => createShip("one", 1)).not.toThrow();

@@ -1,4 +1,4 @@
-import { createGameboard } from "./GameObjects";
+import { createGameboard } from "./gameObjects";
 
 const BOARD_SIZE = 10;
 
