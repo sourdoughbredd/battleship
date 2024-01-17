@@ -1,3 +1,4 @@
+import { pubsub } from "./pubSub.js";
 export { createShip, createGameboard, createPlayer, createComputerPlayer };
 
 function getRandomInt(min, max) {
@@ -48,7 +49,7 @@ function createShip(name, length) {
   };
 }
 
-function createGameboard() {
+function createGameboard(boardName) {
   const BOARD_SIZE = 10;
 
   function getBoardWithFill(fillValue) {
@@ -58,6 +59,12 @@ function createGameboard() {
   const _ships = getBoardWithFill(null);
   const _attacks = getBoardWithFill(null);
   let _numShipsLeft = 0;
+
+  // Let other modules knwo we have a new board
+  pubsub.publish("boardCreated", {
+    name: boardName,
+    size: BOARD_SIZE,
+  });
 
   function validateRowCol(row, col) {
     if (row < 0 || col < 0 || row >= BOARD_SIZE || col >= BOARD_SIZE) {
@@ -115,14 +122,18 @@ function createGameboard() {
     validateShipPlacement(length, row, col, orientation);
 
     const ship = createShip(name, length);
+    const locations = [];
     for (let delta = 0; delta < length; delta++) {
       if (orientation == "h") {
         _ships[row][col + delta] = ship;
+        locations.push({ row, col: col + delta });
       } else {
         _ships[row + delta][col] = ship;
+        locations.push({ row: row + delta, col });
       }
     }
     _numShipsLeft += 1;
+    pubsub.publish("shipAdded", { boardName, shipName: name, locations });
   };
 
   const hasShip = function (row, col) {
@@ -145,6 +156,13 @@ function createGameboard() {
       _ships[row][col].hit();
       _numShipsLeft -= _ships[row][col].isSunk();
     }
+
+    pubsub.publish("boardAttacked", {
+      boardName,
+      row,
+      col,
+      status: hitShip ? "hit" : "miss",
+    });
   };
 
   const attackStatus = function (row, col) {
@@ -169,6 +187,7 @@ function createGameboard() {
   };
 
   return {
+    name: boardName,
     size: BOARD_SIZE,
     placeShip,
     hasShip,
@@ -181,25 +200,46 @@ function createGameboard() {
   };
 }
 
-function createPlayer(board) {
+function createPlayer(board, opponentBoard) {
+  function attack(row, col) {
+    opponentBoard.receiveAttack(row, col);
+  }
+
   function placeShip(name, length, row, col, orientation) {
     board.placeShip(name, length, row, col, orientation);
   }
 
-  function attack(opponent, row, col) {
-    opponent.board.receiveAttack(row, col);
+  async function takeTurn() {
+    return new Promise((resolve) => {
+      const processBoardClick = (data) => {
+        if (data.name !== "player") {
+          // Clicked on someone elses board. Attack!
+          // console.log(`player attacking ${data.row}, ${data.col}`);
+          try {
+            attack(data.row, data.col);
+          } catch {
+            // Attack failed. Wait for another click.
+            return;
+          }
+          pubsub.unsubscribe("boardClicked", processBoardClick);
+          resolve(true);
+        }
+      };
+      // Listen for clicks on boards and process attack
+      pubsub.subscribe("boardClicked", processBoardClick);
+    });
   }
 
   return {
     board,
     placeShip,
-    attack,
+    takeTurn,
   };
 }
 
-function createComputerPlayer(board) {
-  // Start with regulare player as template, then override methods
-  const computer = createPlayer(board);
+function createComputerPlayer(board, opponentBoard) {
+  // Start with regular player as template, then override methods
+  const computer = createPlayer(board, opponentBoard);
 
   // Override methods
 
@@ -220,11 +260,13 @@ function createComputerPlayer(board) {
   };
 
   // Attack a random spot from the set of all allowable spots
-  computer.attack = function (opponent) {
-    const attackableSpots = opponent.board.attackableSpots();
+  computer.takeTurn = async function () {
+    const attackableSpots = opponentBoard.attackableSpots();
     const [rowToAttack, colToAttack] =
       attackableSpots[getRandomInt(0, attackableSpots.length)];
-    opponent.board.receiveAttack(rowToAttack, colToAttack);
+    // console.log(`computer attacking ${rowToAttack}, ${colToAttack}`);
+    opponentBoard.receiveAttack(rowToAttack, colToAttack);
+    return new Promise((resolve) => resolve(true));
   };
 
   return computer;
