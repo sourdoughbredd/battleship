@@ -81,7 +81,6 @@ function createGameboard(boardName) {
       );
     }
     if (orientation === "h" && col + length > BOARD_SIZE) {
-      console.log(BOARD_SIZE);
       throw new InvalidShipPlacementError(
         `Horizontally placing ship of length ${length} at row ${row}, col ${col} would violate board bounds!`
       );
@@ -197,12 +196,10 @@ function createPlayer(board, opponentBoard) {
     return new Promise((resolve) => resolve());
   }
 
-  async function takeTurn() {}
-
   return {
     board,
     placeShip,
-    takeTurn,
+    attack,
   };
 }
 
@@ -229,13 +226,12 @@ function createComputerPlayer(board, opponentBoard) {
   };
 
   // Attack a random spot from the set of all allowable spots
-  computer.takeTurn = async function () {
+  computer.attack = function () {
     const attackableSpots = opponentBoard.attackableSpots();
     const [rowToAttack, colToAttack] =
       attackableSpots[getRandomInt(0, attackableSpots.length)];
     // console.log(`computer attacking ${rowToAttack}, ${colToAttack}`);
     opponentBoard.receiveAttack(rowToAttack, colToAttack);
-    return new Promise((resolve) => resolve(true));
   };
 
   return computer;
