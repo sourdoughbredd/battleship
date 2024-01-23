@@ -118,9 +118,8 @@ const UI = (function () {
 
         // Callback when board is clicked that returns the placement chosen
         function boardClicked(event) {
-          // Destroy custom hover effect
-          boardElem.removeEventListener("mouseover", addGhostShip);
-          boardElem.removeEventListener("mouseout", clearAllGhostShips);
+          // Destroy all event listeners and custom hover effect
+          removeAllEventListeners();
           clearAllGhostShips();
           // RESOLVE
           resolve({
@@ -130,15 +129,42 @@ const UI = (function () {
           });
         }
 
+        // Adds all event listeners for ship placement interactivity
+        function addAllEventListeners() {
+          boardElem.addEventListener("mouseover", addGhostShip);
+          boardElem.addEventListener("mouseout", clearAllGhostShips);
+          boardElem.addEventListener("click", boardClicked);
+          addEventListener("keydown", keyPressed);
+        }
+
+        // Removes all event listeners for ship placement interactivity
+        function removeAllEventListeners() {
+          boardElem.removeEventListener("mouseover", addGhostShip);
+          boardElem.removeEventListener("mouseout", clearAllGhostShips);
+          boardElem.removeEventListener("click", boardClicked);
+          removeEventListener("keydown", keyPressed);
+        }
+
         //  Event listeners
-        boardElem.addEventListener("mouseover", addGhostShip);
-        boardElem.addEventListener("mouseout", clearAllGhostShips);
-        boardElem.addEventListener("click", boardClicked);
-        addEventListener("keydown", keyPressed);
+        addAllEventListeners();
       });
     }
 
-    return { refresh, solicitPlaceShip };
+    // Solicit an attack using the board UI
+    async function solicitAttack() {
+      return new Promise((resolve) => {
+        function boardClicked(event) {
+          const row = parseInt(event.target.dataset.row);
+          const col = parseInt(event.target.dataset.col);
+          boardElem.removeEventListener("click", boardClicked);
+          resolve({ row, col });
+        }
+
+        boardElem.addEventListener("click", boardClicked);
+      });
+    }
+
+    return { refresh, solicitPlaceShip, solicitAttack };
   }
 
   return { createBoardUI };
