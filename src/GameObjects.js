@@ -60,12 +60,6 @@ function createGameboard(boardName) {
   const _attacks = getBoardWithFill(null);
   let _numShipsLeft = 0;
 
-  // Let other modules knwo we have a new board
-  pubsub.publish("boardCreated", {
-    name: boardName,
-    size: BOARD_SIZE,
-  });
-
   function validateRowCol(row, col) {
     if (row < 0 || col < 0 || row >= BOARD_SIZE || col >= BOARD_SIZE) {
       throw new Error(
@@ -87,6 +81,7 @@ function createGameboard(boardName) {
       );
     }
     if (orientation === "h" && col + length > BOARD_SIZE) {
+      console.log(BOARD_SIZE);
       throw new InvalidShipPlacementError(
         `Horizontally placing ship of length ${length} at row ${row}, col ${col} would violate board bounds!`
       );
@@ -133,7 +128,6 @@ function createGameboard(boardName) {
       }
     }
     _numShipsLeft += 1;
-    pubsub.publish("shipAdded", { boardName, shipName: name, locations });
   };
 
   const hasShip = function (row, col) {
@@ -156,13 +150,6 @@ function createGameboard(boardName) {
       _ships[row][col].hit();
       _numShipsLeft -= _ships[row][col].isSunk();
     }
-
-    pubsub.publish("boardAttacked", {
-      boardName,
-      row,
-      col,
-      status: hitShip ? "hit" : "miss",
-    });
   };
 
   const attackStatus = function (row, col) {
@@ -205,30 +192,12 @@ function createPlayer(board, opponentBoard) {
     opponentBoard.receiveAttack(row, col);
   }
 
-  function placeShip(name, length, row, col, orientation) {
+  async function placeShip(name, length, row, col, orientation) {
     board.placeShip(name, length, row, col, orientation);
+    return new Promise((resolve) => resolve());
   }
 
-  async function takeTurn() {
-    return new Promise((resolve) => {
-      const processBoardClick = (data) => {
-        if (data.name !== "player") {
-          // Clicked on someone elses board. Attack!
-          // console.log(`player attacking ${data.row}, ${data.col}`);
-          try {
-            attack(data.row, data.col);
-          } catch {
-            // Attack failed. Wait for another click.
-            return;
-          }
-          pubsub.unsubscribe("boardClicked", processBoardClick);
-          resolve(true);
-        }
-      };
-      // Listen for clicks on boards and process attack
-      pubsub.subscribe("boardClicked", processBoardClick);
-    });
-  }
+  async function takeTurn() {}
 
   return {
     board,
