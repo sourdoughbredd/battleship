@@ -2,75 +2,144 @@ import { pubsub } from "./pubSub.js";
 export { UI };
 
 const UI = (function () {
-  function lin2sub(linearIndex) {
-    const row = Math.floor(linearIndex / 10);
-    const col = linearIndex % 10;
-    return { row, col };
-  }
-
-  function addBoardToDOM(board) {
+  function createBoardUI(board) {
     // Create the board UI DOM element and append to DOM
     const boardElem = document.createElement("div");
-    // const cellsArray = [...Array(board.size)].map((e) => Array(board.size));
     boardElem.classList.add("board");
     boardElem.id = board.name;
-    for (let i = 0; i < board.size * board.size; i++) {
-      const cell = document.createElement("div");
-      cell.classList.add("grid-square");
-      const row = lin2sub(i).row;
-      const col = lin2sub(i).col;
-      cell.dataset.row = row;
-      cell.dataset.col = col;
-      // cellsArray[row][col] = cell;
-      boardElem.appendChild(cell);
+    for (let row = 0; row < board.size; row++) {
+      for (let col = 0; col < board.size; col++) {
+        const cell = document.createElement("div");
+        cell.classList.add("grid-square");
+        cell.dataset.row = row;
+        cell.dataset.col = col;
+        // cellsArray[row][col] = cell;
+        boardElem.appendChild(cell);
+      }
     }
     document.querySelector(".boards-container").appendChild(boardElem);
 
-    // Add click listeners to the board
-    boardElem.addEventListener("click", (event) => {
-      pubsub.publish("boardClicked", {
-        name: board.name,
-        row: event.target.dataset.row,
-        col: event.target.dataset.col,
-      });
-      // console.log(board.name + " board clicked!");
-    });
+    // Get cell DOM element by (row, col) index
+    function getCell(row, col) {
+      return boardElem.querySelector(
+        `.grid-square[data-row="${row}"][data-col="${col}"]`
+      );
+    }
 
-    // Add subscriber for ship addition
-    function addShip(name, locations) {
-      for (let i = 0; i < locations.length; i++) {
-        const row = locations[i].row;
-        const col = locations[i].col;
-        const cell = boardElem.querySelector(
-          `.grid-square[data-row="${row}"][data-col="${col}"]`
-        );
-        cell.classList.add("has-ship");
+    // Add ship to cell
+    function addShip(row, col) {
+      getCell(row, col).classList.add("has-ship");
+    }
+
+    // Add hit to cell
+    function addHit(row, col) {
+      getCell(row, col).classList.add("hit");
+    }
+
+    // Add miss to cell
+    function addMiss(row, col) {
+      getCell(row, col).classList.add("miss");
+    }
+
+    // Refreshes the board UI
+    function refresh() {
+      for (let row = 0; row < board.size; row++) {
+        for (let col = 0; col < board.size; col++) {
+          if (board.hasShip(row, col)) {
+            addShip(row, col);
+          }
+          switch (board.attackStatus(row, col)) {
+            case true:
+              addHit(row, col);
+              break;
+            case false:
+              addMiss(row, col);
+              break;
+            case null:
+              // Not attacked
+              break;
+            default:
+              throw new Error(
+                "Board attackStatus() method returned an unexpected value!"
+              );
+          }
+        }
       }
     }
 
-    pubsub.subscribe("shipAdded", (data) => {
-      const boardName = data.boardName;
-      if (boardName === board.name) {
-        addShip(data.shipName, data.locations);
-      }
-    });
+    // Solicits the player to place a ship using the UI
+    async function solicitPlaceShip(name, length) {
+      return new Promise((resolve) => {
+        let orientation = "h"; // will toggle this with keydown listener
 
-    // Add subscriber for board attacks
-    pubsub.subscribe("boardAttacked", (data) => {
-      if (data.boardName === board.name) {
-        // console.log(
-        //   `attack received! (${data.row}, ${data.col}) is ${data.status} on ${data.boardName} board!`
-        // );
-        const cell = boardElem.querySelector(
-          `.grid-square[data-row="${data.row}"][data-col="${data.col}"]`
-        );
-        cell.classList.add(data.status);
-      }
-    });
+        // Callback for mouseover that adds shading to cells where ship will be placed if target cell is clicked
+        function addGhostShip(event) {
+          if (!event.target || !event.target.classList.contains("grid-square"))
+            return;
+          const cell = event.target;
+          const row = parseInt(cell.dataset.row);
+          const col = parseInt(cell.dataset.col);
+          if (orientation === "h") {
+            for (let dcol = 0; dcol < length; dcol++) {
+              try {
+                getCell(row, col + dcol).classList.add("ghost-ship");
+              } catch {
+                break;
+              }
+            }
+          } else {
+            for (let drow = 0; drow < length; drow++) {
+              try {
+                getCell(row + drow, col).classList.add("ghost-ship");
+              } catch {
+                break;
+              }
+            }
+          }
+        }
+
+        // Callback for mouseout that clears all ghost ships from the board
+        function clearAllGhostShips() {
+          const ghostShips = boardElem.querySelectorAll(
+            ".grid-square.ghost-ship"
+          );
+          ghostShips.forEach((cell) => cell.classList.remove("ghost-ship"));
+        }
+
+        // Callback for keydown that rotates the ghost ship if "r" is pressed
+        function keyPressed(event) {
+          if (event.key.toLowerCase() !== "r") return;
+          orientation = orientation == "h" ? "v" : "h";
+          clearAllGhostShips();
+          // Call the hover callback with a fudged event target to generate the rotated ghost ship
+          const target = document.querySelector(".grid-square:hover");
+          addGhostShip({ target });
+        }
+
+        // Callback when board is clicked that returns the placement chosen
+        function boardClicked(event) {
+          // Destroy custom hover effect
+          boardElem.removeEventListener("mouseover", addGhostShip);
+          boardElem.removeEventListener("mouseout", clearAllGhostShips);
+          clearAllGhostShips();
+          // RESOLVE
+          resolve({
+            row: parseInt(event.target.dataset.row),
+            col: parseInt(event.target.dataset.col),
+            orientation,
+          });
+        }
+
+        //  Event listeners
+        boardElem.addEventListener("mouseover", addGhostShip);
+        boardElem.addEventListener("mouseout", clearAllGhostShips);
+        boardElem.addEventListener("click", boardClicked);
+        addEventListener("keydown", keyPressed);
+      });
+    }
+
+    return { refresh, solicitPlaceShip };
   }
 
-  // Listen for board creations and add them to the DOM
-  pubsub.subscribe("boardCreated", (board) => {
-    addBoardToDOM(board);
-  });
+  return { createBoardUI };
 })();
