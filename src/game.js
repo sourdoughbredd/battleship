@@ -4,12 +4,13 @@ import {
   createPlayer,
   createComputerPlayer,
 } from "./gameObjects.js";
-import { pubsub } from "./pubSub.js";
+import { UI } from "./ui.js";
 export { createGame };
 
 const createGame = function () {
   let player, computer;
   let playerBoard, computerBoard;
+  let playerBoardUI, computerBoardUI;
   let currPlayer;
 
   const ships = {
@@ -24,19 +25,61 @@ const createGame = function () {
     // Create boards
     playerBoard = createGameboard("player");
     computerBoard = createGameboard("computer");
+
+    // Create board UIs
+    playerBoardUI = UI.createBoardUI(playerBoard);
+    computerBoardUI = UI.createBoardUI(computerBoard);
+
     // Create players
     player = createPlayer(playerBoard, computerBoard);
     computer = createComputerPlayer(computerBoard, playerBoard);
+
     // Let players place their ships
-    playerPlaceShips();
+    await playerPlaceShips();
+    playerBoardUI.refresh();
     computerPlaceShips();
+    computerBoardUI.refresh();
+
     // Start game loop
-    currPlayer = player;
-    const dummy = await gameLoop();
-    console.log(dummy);
+    let currPlayer = player;
+    await gameLoop();
   }
 
-  function playerPlaceShips() {
+  async function playerPlaceShips() {
+    // REAL IMPLEMTATION
+    for (const [shipName, shipLength] of Object.entries(ships)) {
+      // Solicit player to interact with UI
+      await solicitPlaceShipAuto(shipName, shipLength);
+      // Refresh UI
+      playerBoardUI.refresh();
+    }
+  }
+
+  async function solicitPlaceShip(name, length) {
+    console.log(`waiting to place ${name}`);
+    const placement = await playerBoardUI.solicitPlaceShip(name, length);
+    // Get UI input and place on board
+    try {
+      playerBoard.placeShip(
+        name,
+        length,
+        placement.row,
+        placement.col,
+        placement.orientation
+      );
+    } catch (e) {
+      if (e instanceof playerBoard.InvalidShipPlacementError) {
+        // Try again
+        await solicitPlaceShip(name, length);
+      } else {
+        // Unexpected error
+        throw e;
+      }
+    }
+  }
+
+  // (FOR TESTING) Automatically places players ships in top-left corner
+  async function solicitPlaceShipAuto(name, length) {
     const playerPlacement = {
       Carrier: { row: 0, col: 0, orientation: "h" },
       Battleship: { row: 1, col: 0, orientation: "h" },
@@ -44,16 +87,15 @@ const createGame = function () {
       Submarine: { row: 3, col: 0, orientation: "h" },
       "Patrol Boat": { row: 4, col: 0, orientation: "h" },
     };
-
-    for (const [shipName, placement] of Object.entries(playerPlacement)) {
-      const success = player.placeShip(
-        shipName,
-        ships[shipName],
-        placement.row,
-        placement.col,
-        placement.orientation
-      );
-    }
+    const placement = playerPlacement[name];
+    player.placeShip(
+      name,
+      length,
+      placement.row,
+      placement.col,
+      placement.orientation
+    );
+    return new Promise((resolve) => resolve());
   }
 
   function computerPlaceShips() {
@@ -70,17 +112,26 @@ const createGame = function () {
     return playerBoard.allShipsSunk() || computerBoard.allShipsSunk();
   }
 
+  function processGameOver() {
+    alert("Game Over!");
+  }
+
   async function gameLoop() {
-    // setTimeout(() => {
-    //   gameOver = true;
-    // }, 5 * 1000);
     while (!gameOver()) {
       // Wait for player to take turn
-      await currPlayer.takeTurn();
+      if (currPlayer === player) {
+        // Solicit attack spot from UI
+      } else {
+        // Computer attacks
+      }
+      // await currPlayer.takeTurn();
       // Next player's turn
       switchPlayer();
     }
-    return new Promise((resolve, reject) => resolve("game over"));
+    return new Promise((resolve, reject) => {
+      processGameOver();
+      resolve();
+    });
   }
 
   return {
