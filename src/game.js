@@ -41,7 +41,6 @@ const createGame = function () {
     computerBoardUI.refresh();
 
     // Start game loop
-    let currPlayer = player;
     await gameLoop();
   }
 
@@ -104,34 +103,56 @@ const createGame = function () {
     }
   }
 
-  function switchPlayer() {
-    currPlayer = currPlayer == player ? computer : player;
-  }
-
   function gameOver() {
     return playerBoard.allShipsSunk() || computerBoard.allShipsSunk();
   }
 
-  function processGameOver() {
-    alert("Game Over!");
+  function processGameOver(winningPlayer) {
+    alert(
+      `Game Over! Winner is ${
+        winningPlayer === player ? "Player" : "Computer"
+      }!`
+    );
   }
 
   async function gameLoop() {
+    let currPlayer = player;
+
+    function switchPlayer() {
+      currPlayer = currPlayer == player ? computer : player;
+    }
+
     while (!gameOver()) {
       // Wait for player to take turn
       if (currPlayer === player) {
         // Solicit attack spot from UI
+        await solicitPlayerAttack();
+        computerBoardUI.refresh();
       } else {
         // Computer attacks
+        computer.attack();
+        playerBoardUI.refresh();
       }
-      // await currPlayer.takeTurn();
       // Next player's turn
       switchPlayer();
     }
+
+    // Game is over. Resolve the promise.
     return new Promise((resolve, reject) => {
-      processGameOver();
+      switchPlayer(); // switch so currPlayer is winner
+      processGameOver(currPlayer);
       resolve();
     });
+  }
+
+  async function solicitPlayerAttack() {
+    const loc = await computerBoardUI.solicitAttack();
+    try {
+      player.attack(loc.row, loc.col);
+    } catch {
+      await solicitPlayerAttack();
+    }
+    return new Promise((resolve) => resolve());
   }
 
   return {
