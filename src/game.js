@@ -1,9 +1,5 @@
-import {
-  createShip,
-  createGameboard,
-  createPlayer,
-  createComputerPlayer,
-} from "./gameObjects.js";
+import { createGameboard } from "./gameObjects.js";
+import { createPlayer, createComputerPlayer } from "./player.js";
 import { UI } from "./ui.js";
 export { createGame };
 
