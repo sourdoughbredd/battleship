@@ -48,7 +48,7 @@ const createGame = function () {
     // REAL IMPLEMTATION
     for (const [shipName, shipLength] of Object.entries(ships)) {
       // Solicit player to interact with UI
-      await solicitPlaceShipAuto(shipName, shipLength);
+      await solicitPlaceShip(shipName, shipLength);
       // Refresh UI
       playerBoardUI.refresh();
     }
