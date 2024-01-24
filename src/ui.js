@@ -154,10 +154,11 @@ const UI = (function () {
     async function solicitAttack() {
       return new Promise((resolve) => {
         function boardClicked(event) {
-          const row = parseInt(event.target.dataset.row);
-          const col = parseInt(event.target.dataset.col);
           boardElem.removeEventListener("click", boardClicked);
-          resolve({ row, col });
+          resolve({
+            row: parseInt(event.target.dataset.row),
+            col: parseInt(event.target.dataset.col),
+          });
         }
 
         boardElem.addEventListener("click", boardClicked);
