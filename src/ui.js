@@ -1,4 +1,3 @@
-import { pubsub } from "./pubSub.js";
 export { UI };
 
 const UI = (function () {
