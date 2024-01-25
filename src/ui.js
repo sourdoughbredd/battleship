@@ -48,13 +48,13 @@ const UI = (function () {
             addShip(row, col);
           }
           switch (board.attackStatus(row, col)) {
-            case true:
+            case "hit":
               addHit(row, col);
               break;
-            case false:
+            case "miss":
               addMiss(row, col);
               break;
-            case null:
+            case "none":
               // Not attacked
               break;
             default:
