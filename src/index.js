@@ -1,5 +1,10 @@
 import "./style.css";
-import { createGame } from "./game.js";
+import { createGame, createReplay } from "./game.js";
 
-const game = createGame();
-game.startGame();
+// NEW GAME
+// const game = createGame();
+// await game.startGame();
+
+// RESTIM
+const replay = createReplay();
+await replay.replayGame(125);
