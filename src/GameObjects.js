@@ -142,7 +142,22 @@ function createGameboard(boardName) {
   };
 
   const attackStatus = function (row, col) {
-    return _attacks[row][col];
+    try {
+      validateRowCol(row, col);
+    } catch {
+      return "outOfBounds";
+    }
+    const status = _attacks[row][col];
+    switch (status) {
+      case null:
+        return "none";
+      case false:
+        return "miss";
+      case true:
+        return "hit";
+      default:
+        throw new Error("Should not reach this line!");
+    }
   };
 
   const attackAllowed = function (row, col) {
@@ -151,7 +166,7 @@ function createGameboard(boardName) {
     } catch {
       return false;
     }
-    return attackStatus(row, col) === null;
+    return attackStatus(row, col) == "none";
   };
 
   const attackableSpots = function () {
