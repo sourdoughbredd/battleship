@@ -25,31 +25,31 @@ function createComputerPlayer(board, opponentBoard) {
 
   // Override methods
 
-  // Repeatedly tries to place the ship at random until a success
+  // Repeatedly tries to place the ship at random until a success.
+  // Returns the final placement.
   computer.placeShip = function (name, length) {
+    const row = getRandomInt(0, board.size);
+    const col = getRandomInt(0, board.size);
+    const orientation = getRandomOrientation();
     try {
-      computer.board.placeShip(
-        name,
-        length,
-        getRandomInt(0, board.size),
-        getRandomInt(0, board.size),
-        getRandomOrientation()
-      );
+      computer.board.placeShip(name, length, row, col, orientation);
     } catch (e) {
       if (!(e instanceof board.InvalidShipPlacementError)) throw e;
-      computer.placeShip(name, length);
+      return computer.placeShip(name, length);
     }
+    return { row, col, orientation };
   };
 
   // Attack a random spot from the set of all allowable spots
   computer.attack = function () {
-    computerAttackLogicMedium();
+    return computerAttackLogicMedium();
   };
 
   // EASY DIFFICULTY AI LOGIC
   function computerAttackLogicEasy() {
     const [row, col] = getRandomAttackableSpot(opponentBoard);
     opponentBoard.receiveAttack(row, col);
+    return { row, col };
   }
 
   // MEDIUM DIFFICULTY AI LOGIC
@@ -71,23 +71,19 @@ function createComputerPlayer(board, opponentBoard) {
     let row, col;
     switch (mode) {
       case "LOCATING": {
-        locatingLogic();
-        break;
+        return locatingLogic();
       }
       case "ORIENTING": {
         // Last attack was a hit. Now trying to determine orientation of ship
-        orientingLogic();
-        break;
+        return orientingLogic();
       }
       case "DESTROYING": {
         // Orientation determined. Destroy ship in one direction, then the other!
-        destroyingLogic();
-        break;
+        return destroyingLogic();
       }
       default:
         break;
     }
-    console.log(attackHistory);
   }
 
   // LOCATING logic
@@ -101,20 +97,26 @@ function createComputerPlayer(board, opponentBoard) {
     // Change states if attack was a hit
     if (hit) {
       attackHistory.initialHit = { row, col };
-      console.log("initial hit is");
-      console.log(attackHistory.initialHit);
       mode = "ORIENTING";
     }
+    return { row, col };
   }
 
   // ORIENTING LOGIC
   function orientingLogic() {
     // Attack a random neighbor of initial hit location
-    const [row, col] = getRandomAttackableNeighbor(
+    const rowCol = getRandomAttackableNeighbor(
       opponentBoard,
       attackHistory.initialHit.row,
       attackHistory.initialHit.col
     );
+    if (!rowCol) {
+      // No neighbors are attackable. Go back to LOCATING
+      mode = "LOCATING";
+      resetAttackHistory();
+      return locatingLogic();
+    }
+    const [row, col] = rowCol;
     const hit = opponentBoard.receiveAttack(row, col);
     // Update attack history
     attackHistory.lastAttack.row = row;
@@ -129,37 +131,47 @@ function createComputerPlayer(board, opponentBoard) {
           ? Math.sign(col - attackHistory.initialHit.col)
           : Math.sign(row - attackHistory.initialHit.row);
       // Look around to see if we are finished with any directions yet
-      const [nextRow, nextCol] = getNextDirectedNeighbor(
+      const nextRowCol = getNextDirectedNeighbor(
+        opponentBoard,
         attackHistory.lastAttack.row,
         attackHistory.lastAttack.col,
         attackHistory.orientation,
         attackHistory.direction
       );
-      const [oppoRow, oppoCol] = getNextDirectedNeighbor(
+      const oppoRowCol = getNextDirectedNeighbor(
+        opponentBoard,
         attackHistory.initialHit.row,
         attackHistory.initialHit.col,
         attackHistory.orientation,
         attackHistory.direction * -1
       );
-      if (!opponentBoard.attackAllowed(nextRow, nextCol)) {
+      if (
+        !nextRowCol ||
+        !opponentBoard.attackAllowed(nextRowCol[0], nextRowCol[1])
+      ) {
         attackHistory.numDirectionsFinished += 1;
         attackHistory.direction *= -1;
       }
-      if (!opponentBoard.attackAllowed(oppoRow, oppoCol)) {
+      if (
+        !oppoRowCol ||
+        !opponentBoard.attackAllowed(oppoRowCol[0], oppoRowCol[1])
+      ) {
         attackHistory.numDirectionsFinished += 1;
       }
       if (attackHistory.numDirectionsFinished === 2) {
-        mode = "ORIENTING";
+        // Go back to LOCATING for next turn
+        mode = "LOCATING";
         resetAttackHistory();
-        return;
       }
     }
+    return { row, col };
   }
 
   // DESTROYING logic
   function destroyingLogic() {
     // Get next attack location
-    const [row, col] = getNextDirectedNeighbor(
+    const rowCol = getNextDirectedNeighbor(
+      opponentBoard,
       attackHistory.lastAttack.row,
       attackHistory.lastAttack.col,
       attackHistory.orientation,
@@ -167,7 +179,7 @@ function createComputerPlayer(board, opponentBoard) {
     );
 
     // If attack is not allowed, need to increment number of finished directions
-    if (!opponentBoard.attackAllowed(row, col)) {
+    if (!rowCol || !opponentBoard.attackAllowed(rowCol[0], rowCol[1])) {
       // We finished this direction
       attackHistory.numDirectionsFinished += 1;
       if (attackHistory.numDirectionsFinished === 1) {
@@ -179,10 +191,11 @@ function createComputerPlayer(board, opponentBoard) {
         // Finished both directions
         mode = "LOCATING";
         resetAttackHistory();
-        locatingLogic();
-        return;
+        return locatingLogic();
       }
     }
+
+    const [row, col] = rowCol;
     // Attack
     const hit = opponentBoard.receiveAttack(row, col);
     // Update attack history
@@ -191,13 +204,18 @@ function createComputerPlayer(board, opponentBoard) {
 
     // Look ahead to next turn to see if we need to switch our direction.
     // If this turn wasn't a hit or next neighbor (next turn) not attackable, we finished in this direction
-    const [nextRow, nextCol] = getNextDirectedNeighbor(
+    const nextRowCol = getNextDirectedNeighbor(
+      opponentBoard,
       row,
       col,
       attackHistory.orientation,
       attackHistory.direction
     );
-    if (!hit || !opponentBoard.attackAllowed(nextRow, nextCol)) {
+    if (
+      !hit ||
+      !nextRowCol ||
+      !opponentBoard.attackAllowed(nextRowCol[0], nextRowCol[1])
+    ) {
       // We finished this direction
       attackHistory.numDirectionsFinished += 1;
       if (attackHistory.numDirectionsFinished === 1) {
@@ -212,6 +230,7 @@ function createComputerPlayer(board, opponentBoard) {
         resetAttackHistory();
       }
     }
+    return { row, col };
   }
 
   return computer;
@@ -246,8 +265,24 @@ function getRandomAttackableNeighbor(board, row, col) {
   return getRandomArrayEntry(attackableNeighbors);
 }
 
-function getNextDirectedNeighbor(row, col, orientation, direction) {
-  return orientation == "h" ? [row, col + direction] : [row + direction, col];
+function getNextDirectedNeighbor(board, row, col, orientation, direction) {
+  const [newRow, newCol] =
+    orientation == "h" ? [row, col + direction] : [row + direction, col];
+  const attackStatus = board.attackStatus(newRow, newCol);
+  if (attackStatus == "outOfBounds") {
+    return null;
+  }
+  if (attackStatus == "hit") {
+    // Skip this one
+    return getNextDirectedNeighbor(
+      board,
+      newRow,
+      newCol,
+      orientation,
+      direction
+    );
+  }
+  return [newRow, newCol];
 }
 
 function oneAway(a, b) {
