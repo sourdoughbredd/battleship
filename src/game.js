@@ -1,12 +1,18 @@
 import { createGameboard } from "./gameObjects.js";
 import { createPlayer, createComputerPlayer } from "./player.js";
 import { UI } from "./ui.js";
-export { createGame };
+export { createGame, createReplay };
 
 const createGame = function () {
   let player, computer;
   let playerBoard, computerBoard;
   let playerBoardUI, computerBoardUI;
+  const gameLog = {
+    playerShips: [],
+    computerShips: [],
+    playerAttacks: [],
+    computerAttacks: [],
+  };
   let currPlayer;
 
   const ships = {
@@ -18,26 +24,32 @@ const createGame = function () {
   };
 
   async function startGame() {
-    // Create boards
-    playerBoard = createGameboard("player");
-    computerBoard = createGameboard("computer");
+    try {
+      // Create boards
+      playerBoard = createGameboard("player");
+      computerBoard = createGameboard("computer");
 
-    // Create board UIs
-    playerBoardUI = UI.createBoardUI(playerBoard);
-    computerBoardUI = UI.createBoardUI(computerBoard);
+      // Create board UIs
+      playerBoardUI = UI.createBoardUI(playerBoard);
+      computerBoardUI = UI.createBoardUI(computerBoard);
 
-    // Create players
-    player = createPlayer(playerBoard, computerBoard);
-    computer = createComputerPlayer(computerBoard, playerBoard);
+      // Create players
+      player = createPlayer(playerBoard, computerBoard);
+      computer = createComputerPlayer(computerBoard, playerBoard);
 
-    // Let players place their ships
-    await playerPlaceShips();
-    playerBoardUI.refresh();
-    computerPlaceShips();
-    computerBoardUI.refresh();
+      // Let players place their ships
+      await playerPlaceShips();
+      playerBoardUI.refresh();
+      computerPlaceShips();
+      computerBoardUI.refresh();
 
-    // Start game loop
-    await gameLoop();
+      // Start game loop
+      await gameLoop();
+      saveGameLog();
+    } catch {
+      // Save game log so game can be restimulated
+      saveGameLog();
+    }
   }
 
   async function playerPlaceShips() {
@@ -66,11 +78,13 @@ const createGame = function () {
       if (e instanceof playerBoard.InvalidShipPlacementError) {
         // Try again
         await solicitPlaceShip(name, length);
+        return;
       } else {
         // Unexpected error
         throw e;
       }
     }
+    gameLog.playerShips.push({ name, length, ...placement });
   }
 
   // (FOR TESTING) Automatically places players ships in top-left corner
@@ -94,8 +108,9 @@ const createGame = function () {
   }
 
   function computerPlaceShips() {
-    for (const [shipName, shipLength] of Object.entries(ships)) {
-      computer.placeShip(shipName, shipLength);
+    for (const [name, length] of Object.entries(ships)) {
+      const placement = computer.placeShip(name, length);
+      gameLog.computerShips.push({ name, length, ...placement });
     }
   }
 
@@ -122,11 +137,13 @@ const createGame = function () {
       // Wait for player to take turn
       if (currPlayer === player) {
         // Solicit attack spot from UI
-        await solicitPlayerAttack();
+        const loc = await solicitPlayerAttack();
+        gameLog.playerAttacks.push(loc);
         computerBoardUI.refresh();
       } else {
         // Computer attacks
-        computer.attack();
+        const loc = computer.attack();
+        gameLog.computerAttacks.push(loc);
         playerBoardUI.refresh();
       }
       // Next player's turn
@@ -146,12 +163,117 @@ const createGame = function () {
     try {
       player.attack(loc.row, loc.col);
     } catch {
-      await solicitPlayerAttack();
+      return await solicitPlayerAttack();
     }
-    return new Promise((resolve) => resolve());
+    return new Promise((resolve) => resolve(loc));
+  }
+
+  function saveGameLog() {
+    localStorage.setItem("gameLog", JSON.stringify(gameLog));
   }
 
   return {
     startGame,
   };
 };
+
+function createReplay() {
+  async function replayGame(delay) {
+    // INITIALIZE GAME
+    const gameLog = loadGameLog();
+
+    // Load the gameLog
+    function loadGameLog() {
+      return JSON.parse(localStorage.getItem("gameLog"));
+    }
+
+    // Sleep
+    async function sleep() {
+      return new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    async function playerPlaceShips() {
+      for (let ship of gameLog.playerShips) {
+        playerBoard.placeShip(
+          ship.name,
+          ship.length,
+          ship.row,
+          ship.col,
+          ship.orientation
+        );
+        playerBoardUI.refresh();
+        await sleep();
+      }
+    }
+
+    async function computerPlaceShips() {
+      for (let ship of gameLog.computerShips) {
+        computerBoard.placeShip(
+          ship.name,
+          ship.length,
+          ship.row,
+          ship.col,
+          ship.orientation
+        );
+        computerBoardUI.refresh();
+        await sleep();
+      }
+    }
+
+    // Create boards
+    const playerBoard = createGameboard("player");
+    const computerBoard = createGameboard("computer");
+
+    // Create board UIs
+    const playerBoardUI = UI.createBoardUI(playerBoard);
+    const computerBoardUI = UI.createBoardUI(computerBoard);
+
+    // Let players place their ships
+    await playerPlaceShips();
+    playerBoardUI.refresh();
+    await computerPlaceShips();
+    computerBoardUI.refresh();
+
+    // GAME LOOP
+
+    async function playerAttack() {
+      const attack = gameLog.playerAttacks.shift();
+      computerBoard.receiveAttack(attack.row, attack.col);
+      await sleep();
+    }
+
+    async function computerAttack() {
+      const attack = gameLog.computerAttacks.shift();
+      playerBoard.receiveAttack(attack.row, attack.col);
+      await sleep();
+    }
+
+    function done() {
+      return (
+        gameLog.playerAttacks.length === 0 &&
+        gameLog.computerAttacks.length === 0
+      );
+    }
+
+    // Start game loop
+    while (!done()) {
+      if (gameLog.playerAttacks.length > 0) {
+        await playerAttack();
+        playerBoardUI.refresh();
+      }
+      if (gameLog.computerAttacks.length > 0) {
+        await computerAttack();
+        computerBoardUI.refresh();
+      }
+    }
+
+    // Return the promise since we are done
+    return new Promise((resolve) => {
+      playerBoardUI.refresh();
+      computerBoardUI.refresh();
+      resolve();
+    });
+  }
+
+  return { replayGame };
+}
