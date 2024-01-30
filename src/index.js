@@ -2,14 +2,15 @@ import "./style.css";
 import { createGame, createReplay } from "./game.js";
 import { UI } from "./ui.js";
 
-// INITIALIZE UI
-const home = UI.loadHomePage();
-const difficulty = await home.solicitStartGame();
+while (true) {
+  // Initialize UI
+  const home = UI.loadHomePage();
+  const difficulty = await home.solicitStartGame();
+  // Create new game and start
+  const game = createGame(difficulty);
+  await game.startGame();
+}
 
-// NEW GAME
-const game = createGame(difficulty);
-await game.startGame();
-
-// RESTIM
+// REPLAY SAVED GAME
 // const replay = createReplay();
 // await replay.replayGame(125);
