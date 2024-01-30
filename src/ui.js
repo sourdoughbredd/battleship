@@ -4,24 +4,22 @@ const UI = (function () {
   // --------------------------
   // HOME PAGE LOADER
   // --------------------------
-  function createHomePage() {
-    // Add home page elements to DOM
+  function loadHomePage() {
+    // ADD HOME PAGE ELEMENTS TO THE DOM
     const body = document.querySelector("body");
     body.innerHTML = `
       <h1>BATTLESHIP</h1>
       <button type="button" id="start-game">Start Game</button>
       <div class="boards-container"></div>
+      <div id="message-box" class="hidden"></div>
     `;
 
-    function removeStartGameButton() {
-      document.querySelector("button#start-game").remove();
-    }
-
-    // Wait for user to press the "Start Game" button
+    // WAIT FOR USER TO PRESS START GAME BUTTON
     async function solicitStartGame() {
       return new Promise((resolve) => {
         function startGamePressed() {
           removeStartGameButton();
+          showMessageBox();
           resolve();
         }
         // Listen for Start Game button clicked
@@ -29,6 +27,15 @@ const UI = (function () {
           .querySelector("button#start-game")
           .addEventListener("click", startGamePressed);
       });
+    }
+
+    // HELPERS
+    function removeStartGameButton() {
+      document.querySelector("button#start-game").remove();
+    }
+
+    function showMessageBox() {
+      document.getElementById("message-box").classList.remove("hidden");
     }
 
     return { solicitStartGame };
@@ -217,5 +224,5 @@ const UI = (function () {
     return { refresh, solicitPlaceShip, solicitAttack };
   }
 
-  return { createHomePage, createBoardUI };
+  return { loadHomePage, createBoardUI };
 })();
