@@ -19,7 +19,7 @@ function createPlayer(board, opponentBoard) {
 }
 
 // COMPUTER PLAYER AI
-function createComputerPlayer(board, opponentBoard) {
+function createComputerPlayer(board, opponentBoard, difficulty) {
   // Start with regular player as template, then override methods
   const computer = createPlayer(board, opponentBoard);
 
@@ -42,7 +42,13 @@ function createComputerPlayer(board, opponentBoard) {
 
   // Attack a random spot from the set of all allowable spots
   computer.attack = function () {
-    return computerAttackLogicMedium();
+    if (difficulty === "easy") {
+      return computerAttackLogicEasy();
+    } else if (difficulty === "medium") {
+      return computerAttackLogicMedium();
+    } else {
+      throw new Error(`Difficulty level requested (${difficulty}) is invalid!`);
+    }
   };
 
   // EASY DIFFICULTY AI LOGIC
