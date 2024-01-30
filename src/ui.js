@@ -1,6 +1,43 @@
 export { UI };
 
 const UI = (function () {
+  // --------------------------
+  // HOME PAGE LOADER
+  // --------------------------
+
+  function createHomePage() {
+    // Add home page elements to DOM
+    const body = document.querySelector("body");
+    body.innerHTML = `
+      <h1>BATTLESHIP</h1>
+      <button type="button" id="start-game">Start Game</button>
+      <div class="boards-container"></div>
+    `;
+
+    function removeStartGameButton() {
+      document.querySelector("button#start-game").remove();
+    }
+
+    // Wait for user to press the "Start Game" button
+    async function solicitStartGame() {
+      return new Promise((resolve) => {
+        function startGamePressed() {
+          removeStartGameButton();
+          resolve();
+        }
+        // Listen for Start Game button clicked
+        document
+          .querySelector("button#start-game")
+          .addEventListener("click", startGamePressed);
+      });
+    }
+
+    return { solicitStartGame };
+  }
+
+  // --------------------------
+  // BOARD UI FACTORY FUNCTION
+  // --------------------------
   function createBoardUI(board) {
     // Create the board UI DOM element and append to DOM
     const boardElem = document.createElement("div");
@@ -167,5 +204,5 @@ const UI = (function () {
     return { refresh, solicitPlaceShip, solicitAttack };
   }
 
-  return { createBoardUI };
+  return { createHomePage, createBoardUI };
 })();
