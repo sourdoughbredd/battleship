@@ -45,10 +45,15 @@ const createGame = function (difficulty) {
 
       // Start game loop
       await gameLoop();
+      const playAgain = true;
       saveGameLog();
-    } catch {
+      return new Promise((resolve) => resolve(playAgain));
+    } catch (e) {
       // Save game log so game can be restimulated to debug error
       saveGameLog();
+      alert("FATAL ERROR: Game log sent to developers for troubleshooting!");
+      console.log(e);
+      return new Promise((resolve) => resolve(true));
     }
   }
 
@@ -118,12 +123,9 @@ const createGame = function (difficulty) {
     return playerBoard.allShipsSunk() || computerBoard.allShipsSunk();
   }
 
-  function processGameOver(winningPlayer) {
-    alert(
-      `Game Over! Winner is ${
-        winningPlayer === player ? "Player" : "Computer"
-      }!`
-    );
+  async function processGameOver(winningPlayer) {
+    await UI.displayGameOver(winningPlayer.name);
+    return new Promise((resolve) => resolve());
   }
 
   async function gameLoop() {
@@ -150,10 +152,11 @@ const createGame = function (difficulty) {
       switchPlayer();
     }
 
+    switchPlayer(); // switch so currPlayer is winner
+    await processGameOver(currPlayer);
+
     // Game is over. Resolve the promise.
-    return new Promise((resolve, reject) => {
-      switchPlayer(); // switch so currPlayer is winner
-      processGameOver(currPlayer);
+    return new Promise((resolve) => {
       resolve();
     });
   }
