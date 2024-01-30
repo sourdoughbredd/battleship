@@ -4,7 +4,6 @@ const UI = (function () {
   // --------------------------
   // HOME PAGE LOADER
   // --------------------------
-
   function createHomePage() {
     // Add home page elements to DOM
     const body = document.querySelector("body");
@@ -39,7 +38,18 @@ const UI = (function () {
   // BOARD UI FACTORY FUNCTION
   // --------------------------
   function createBoardUI(board) {
-    // Create the board UI DOM element and append to DOM
+    // ADD BOARD UI TO DOM
+
+    // Create container for board and title
+    const boardContainer = document.createElement("div");
+    boardContainer.classList.add("board-container");
+    // Add title
+    const title = board.name === "player" ? "YOU" : "AI";
+    const titleElem = document.createElement("h2");
+    titleElem.innerText = title;
+    titleElem.classList.add("title");
+    boardContainer.appendChild(titleElem);
+    // Add board
     const boardElem = document.createElement("div");
     boardElem.classList.add("board");
     boardElem.id = board.name;
@@ -53,31 +63,10 @@ const UI = (function () {
         boardElem.appendChild(cell);
       }
     }
-    document.querySelector(".boards-container").appendChild(boardElem);
+    boardContainer.appendChild(boardElem);
+    document.querySelector(".boards-container").appendChild(boardContainer);
 
-    // Get cell DOM element by (row, col) index
-    function getCell(row, col) {
-      return boardElem.querySelector(
-        `.grid-square[data-row="${row}"][data-col="${col}"]`
-      );
-    }
-
-    // Add ship to cell
-    function addShip(row, col) {
-      getCell(row, col).classList.add("has-ship");
-    }
-
-    // Add hit to cell
-    function addHit(row, col) {
-      getCell(row, col).classList.add("hit");
-    }
-
-    // Add miss to cell
-    function addMiss(row, col) {
-      getCell(row, col).classList.add("miss");
-    }
-
-    // Refreshes the board UI
+    // REFRESHES THE BOARD UI
     function refresh() {
       for (let row = 0; row < board.size; row++) {
         for (let col = 0; col < board.size; col++) {
@@ -103,7 +92,7 @@ const UI = (function () {
       }
     }
 
-    // Solicits the player to place a ship using the UI
+    // SOLICITS PLAYER TO PLACE A SHIP USING THE UI
     async function solicitPlaceShip(name, length) {
       return new Promise((resolve) => {
         let orientation = "h"; // will toggle this with keydown listener
@@ -199,6 +188,30 @@ const UI = (function () {
 
         boardElem.addEventListener("click", boardClicked);
       });
+    }
+
+    // HELPERS
+
+    // Get cell DOM element by (row, col) index
+    function getCell(row, col) {
+      return boardElem.querySelector(
+        `.grid-square[data-row="${row}"][data-col="${col}"]`
+      );
+    }
+
+    // Add ship to cell
+    function addShip(row, col) {
+      getCell(row, col).classList.add("has-ship");
+    }
+
+    // Add hit to cell
+    function addHit(row, col) {
+      getCell(row, col).classList.add("hit");
+    }
+
+    // Add miss to cell
+    function addMiss(row, col) {
+      getCell(row, col).classList.add("miss");
     }
 
     return { refresh, solicitPlaceShip, solicitAttack };
