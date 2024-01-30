@@ -2,6 +2,8 @@ export { createPlayer, createComputerPlayer };
 
 // HUMAN PLAYER
 function createPlayer(board, opponentBoard) {
+  const name = "player";
+
   function attack(row, col) {
     opponentBoard.receiveAttack(row, col);
   }
@@ -12,6 +14,7 @@ function createPlayer(board, opponentBoard) {
   }
 
   return {
+    name,
     board,
     placeShip,
     attack,
@@ -23,7 +26,8 @@ function createComputerPlayer(board, opponentBoard, difficulty) {
   // Start with regular player as template, then override methods
   const computer = createPlayer(board, opponentBoard);
 
-  // Override methods
+  // Overrides
+  computer.name = "computer";
 
   // Repeatedly tries to place the ship at random until a success.
   // Returns the final placement.
