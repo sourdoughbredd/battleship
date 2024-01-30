@@ -9,9 +9,15 @@ const UI = (function () {
     const body = document.querySelector("body");
     body.innerHTML = `
       <h1>BATTLESHIP</h1>
+      <div class="options-container">
+        <label for="difficulty">Difficulty</label>
+        <select name="difficulty" id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+        </select>
+      </div>
       <button type="button" id="start-game">Start Game</button>
       <div class="boards-container"></div>
-      <div id="message-box" class="hidden"></div>
     `;
 
     // WAIT FOR USER TO PRESS START GAME BUTTON
@@ -19,8 +25,8 @@ const UI = (function () {
       return new Promise((resolve) => {
         function startGamePressed() {
           removeStartGameButton();
-          showMessageBox();
-          resolve();
+          // Return the difficulty chosen
+          resolve(getDifficultySelection());
         }
         // Listen for Start Game button clicked
         document
@@ -34,8 +40,9 @@ const UI = (function () {
       document.querySelector("button#start-game").remove();
     }
 
-    function showMessageBox() {
-      document.getElementById("message-box").classList.remove("hidden");
+    function getDifficultySelection() {
+      const select = document.getElementById("difficulty");
+      return select.options[select.selectedIndex].value;
     }
 
     return { solicitStartGame };
@@ -71,7 +78,33 @@ const UI = (function () {
       }
     }
     boardContainer.appendChild(boardElem);
+    // Create the message box for the board
+    const messageBox = createMessageBox();
+    boardContainer.appendChild(messageBox);
+    hideMessageBox();
     document.querySelector(".boards-container").appendChild(boardContainer);
+
+    // Create message box
+    function createMessageBox() {
+      const elem = document.createElement("div");
+      elem.classList.add("message-box");
+      return elem;
+    }
+
+    // Update message box
+    function updateMessageBox(message) {
+      messageBox.innerText = message;
+    }
+
+    // Show message box
+    function showMessageBox(message = null) {
+      messageBox.classList.remove("hidden");
+    }
+
+    // Hide message box
+    function hideMessageBox() {
+      messageBox.classList.add("hidden");
+    }
 
     // REFRESHES THE BOARD UI
     function refresh() {
@@ -101,10 +134,16 @@ const UI = (function () {
 
     // SOLICITS PLAYER TO PLACE A SHIP USING THE UI
     async function solicitPlaceShip(name, length) {
+      // Update message box
+      showMessageBox();
+      updateMessageBox(`Time to place your ${name}. Press "r" to rotate.`);
+
+      // Resolve promise when ship successfully placed
       return new Promise((resolve) => {
         let orientation = "h"; // will toggle this with keydown listener
 
-        // Callback for mouseover that adds shading to cells where ship will be placed if target cell is clicked
+        // Callback for mouseover that adds shading to cells where ship will be
+        // placed if target cell is clicked
         function addGhostShip(event) {
           if (!event.target || !event.target.classList.contains("grid-square"))
             return;
@@ -153,6 +192,7 @@ const UI = (function () {
           // Destroy all event listeners and custom hover effect
           removeAllEventListeners();
           clearAllGhostShips();
+          hideMessageBox();
           // RESOLVE
           resolve({
             row: parseInt(event.target.dataset.row),
