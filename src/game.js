@@ -3,7 +3,7 @@ import { createPlayer, createComputerPlayer } from "./player.js";
 import { UI } from "./ui.js";
 export { createGame, createReplay };
 
-const createGame = function () {
+const createGame = function (difficulty) {
   let player, computer;
   let playerBoard, computerBoard;
   let playerBoardUI, computerBoardUI;
@@ -35,7 +35,7 @@ const createGame = function () {
 
       // Create players
       player = createPlayer(playerBoard, computerBoard);
-      computer = createComputerPlayer(computerBoard, playerBoard);
+      computer = createComputerPlayer(computerBoard, playerBoard, difficulty);
 
       // Let players place their ships
       await playerPlaceShips();
@@ -47,7 +47,7 @@ const createGame = function () {
       await gameLoop();
       saveGameLog();
     } catch {
-      // Save game log so game can be restimulated
+      // Save game log so game can be restimulated to debug error
       saveGameLog();
     }
   }
