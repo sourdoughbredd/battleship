@@ -149,8 +149,7 @@ const UI = (function () {
         }
 
         // Callback for keydown that rotates the ghost ship if "r" is pressed
-        function keyPressed(event) {
-          if (event.key.toLowerCase() !== "r") return;
+        function keyPressed() {
           orientation = orientation == "h" ? "v" : "h";
           clearAllGhostShips();
           // Call the hover callback with a fudged event target to generate the rotated ghost ship
