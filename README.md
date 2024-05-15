@@ -1,8 +1,78 @@
-# battleship
+# Battleship
 
-## Introduction
+A minimalistic web-based implementation of the classic strategy game Battleship.
 
-A minimalistic web-based implementation of the classic strategy game Battleship. In this version, a human player can play against an AI of easy or medium difficulty. Each player gets to place 5 ships of length 5, 4, 3, 3, and 2 respectively. When placing ships, press any key to rotate the ship. First player to sink all of their opponent's ships wins! Crafted with precision and a clear coding style, this standalone web app is bundled with Webpack, emphasizing modern web development practices. It also features a simple error logging and game replay system for debugging game crashes (see Game Logging and Playback section).
+## Description
+
+This project is a web-based implementation of the classic Battleship game. A human player can play against an AI of easy or medium difficulty. Each player gets to place 5 ships of lengths 5, 4, 3, 3, and 2 respectively. When placing ships, press any key to rotate the ship. The first player to sink all of their opponent's ships wins! Crafted with precision and a clear coding style, this standalone web app is bundled with Webpack, emphasizing modern web development practices. It also features a simple error logging and game replay system for debugging game crashes.
+
+## Table of Contents
+
+- [Description](#description)
+- [Screenshot](#screenshot)
+- [Preview](#preview)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Game Logging and Playback](#game-logging-and-playback)
+- [License](#license)
+- [Contact Information](#contact-information)
+
+## Screenshot
+
+<img src="./screenshots/gameplay.png" alt="Screenshot of the Battleship Game showing two grids for the player and the computer and a game in progress" style="max-height: 400px;">
+
+## Preview
+
+You can view a live preview of the page [here](https://sourdoughbredd.github.io/battleship/).
+
+## Features
+
+- Player vs Computer gameplay
+- Randomized ship placement for the computer
+- Drag-and-drop style ship placement for the player
+- Easy and Medium Computer AI designs
+- Dynamic updates to the game board
+- Game Logging and Playback for debugging
+
+## Installation
+
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/sourdoughbredd/battleship.git
+   ```
+2. Navigate to the project directory:
+   ```sh
+   cd battleship
+   ```
+3. Install dependencies:
+   ```sh
+   npm install
+   ```
+4. Build the project:
+   ```sh
+   npm run build
+   ```
+5. Open `dist/index.html` in your preferred web browser.
+
+## Usage
+
+- Open `dist/index.html` in a web browser to play the Battleship game.
+- Choose your difficulty and press start
+- Drop your ships onto the player board, pressing any key to rotate them.
+- The game starts when you have placed your last ship.
+- Take turns clicking on the computer's board to guess ship locations.
+- The game ends when all ships of either the player or the computer are sunk.
+
+## Tech Stack
+
+- HTML
+- CSS
+- JavaScript (game logic and UI)
+- Webpack (build)
+- Jest (testing)
 
 ## Project Structure
 
@@ -36,11 +106,15 @@ Logs are automatically saved to `localStorage` at the end of a game (or when a g
 
 2. **Initiating Playback**:
    - Locate and uncomment the `createReplay()` function invocation in `index.js`.
-   - Call the `createReplay()` function to create a replay object. Then, use the `replayGame(delay)` method of the object instance to start the animated playback of the game. The `delay` input is the amount of time in millisseconds to delay between moves (ship placements & attacks) in the replay.
+   - Call the `createReplay()` function to create a replay object. Then, use the `replayGame(delay)` method of the object instance to start the animated playback of the game. The `delay` input is the amount of time in milliseconds to delay between moves (ship placements & attacks) in the replay.
    - This process reads the stored game logs and animates the game's progress, offering a step-by-step visual representation of the gameplay.
 
 This advanced logging and playback functionality is designed to streamline the debugging process, providing comprehensive insights into the game's dynamics and assisting developers in improving and troubleshooting the game more effectively.
 
-## Contributors
+## License
 
-- Brett Bussell (Sole Contributor)
+This project is licensed under the MIT License.
+
+## Contact Information
+
+For any questions or suggestions, please contact Brett Bussell at [bwbussell24@gmail.com](mailto:bwbussell24@gmail.com).
